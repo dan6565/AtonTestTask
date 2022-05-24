@@ -14,13 +14,13 @@ namespace AtonWebApi.Models
         public DateTime? Birthday { get; set; }
         public bool Admin { get; set; }
         public DateTime CreatedOn { get; set; }
-        public string CreatedBy { get; set; }
+        public string CreatedBy { get; set; } = String.Empty;
         public DateTime ModifiedOn { get; set; }
-        public string ModifiedBy { get; set; }
+        public string ModifiedBy { get; set; } = String.Empty;
         public DateTime RevokedOn { get; set; }
-        public string RevokedBy { get; set; }
+        public string RevokedBy { get; set; } = String.Empty;
         public User() { }
-        public User(UserDto userDto)
+        public User(UserDto userDto,string creator)
         {
             Login = userDto.Login;
             Password = userDto.Password;

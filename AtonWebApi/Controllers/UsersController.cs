@@ -21,8 +21,16 @@ namespace AtonWebApi.Controllers
             {
                 return BadRequest(ModelState);
             }
+            var result = await _userRepository.GetUserAsync(user.Login);
+            if (result != null)
+            {
+                return BadRequest("User with this login already exists");
+            }
+            var newUser = new User(user,"admin");
+            await _userRepository.CreateUserAsync(newUser);
+            
            
-            return Ok();
+            return Ok("User is added");
         }
 
     }

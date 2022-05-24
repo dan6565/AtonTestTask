@@ -9,13 +9,14 @@ namespace AtonWebApi.Attributes
             var str = (string)value;
             foreach(var letter in str)
             {
-                if (!char.IsLetter(letter))
+                if (!(letter >= 'A' && letter <= 'z'|| letter >= 'А' && letter <= 'я'))
                 {
-                    ErrorMessage = "This field can consist only from latin letters";
+                    ErrorMessage = "This field can consist only russin or latin letters";
                     return false;
                 }
             }
             return true;
         }
     }
+  
 }

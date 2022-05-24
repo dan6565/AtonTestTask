@@ -24,7 +24,7 @@ namespace AtonWebApi.Data.Initialiser
             };
             User user = await repository.GetUserAsync(admin.Login);
             if(user==null)
-            await repository.CreateUser(admin);            
+            await repository.CreateUserAsync(admin);            
         }
     }
 }

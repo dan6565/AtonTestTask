@@ -12,7 +12,7 @@ namespace AtonTestTask.Data.Repositories
             _dbContext = dbContext;
         }
         
-        public async Task CreateUser(User user)
+        public async Task CreateUserAsync(User user)
         {
            await _dbContext.Users.AddAsync(user);
             await _dbContext.SaveChangesAsync();
