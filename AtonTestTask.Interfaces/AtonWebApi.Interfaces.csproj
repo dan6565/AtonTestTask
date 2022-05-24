@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AtonWebApi.Dto\AtonWebApi.Dto.csproj" />
     <ProjectReference Include="..\AtonWebApi.Models\AtonWebApi.Models.csproj" />
   </ItemGroup>
 

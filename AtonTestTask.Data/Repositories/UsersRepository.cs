@@ -37,6 +37,10 @@ namespace AtonTestTask.Data.Repositories
             return await _dbContext.Users.FirstOrDefaultAsync(x=>x.Login == login);
         }
 
+        public Task<User> GetUserAsync(string login, string password)
+        {
+            return _dbContext.Users.FirstOrDefaultAsync(x=>x.Login==login&& x.Password==password);
+        }
 
         public async Task UpdateUser(User user)
         {
