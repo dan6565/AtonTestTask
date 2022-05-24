@@ -1,0 +1,16 @@
+﻿
+
+using AtonWebApi.Models;
+
+namespace AtonTestTask.Interfaces
+{
+    public interface IUserRepository
+    {
+        public Task CreateUser(User user);
+        public Task UpdateUser(User user);
+        public Task DeleteUser(string login);
+        public Task<User> GetUserAsync(string login);
+        public Task<List<User>> GetActiveUsers();
+       
+    }
+}
