@@ -1,5 +1,5 @@
-﻿
-using AtonTestTask.Data.Repositories;
+﻿using AtonTestTask.Data.Repositories;
+using AtonWebApi.Entities;
 using AtonWebApi.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,8 +12,8 @@ namespace AtonWebApi.Controllers
         private readonly UsersRepository _userRepository;
        
         public UsersController(UsersRepository usersRepository) { _userRepository = usersRepository; }
-        [HttpPost("create")]
-        public async Task<ActionResult> CreateUser([FromBody] ModelForCreating model)
+        [HttpPost("Create")]
+        public async Task<ActionResult> CreateUser([FromBody] ModelCreating model)
         {
             if (!ModelState.IsValid)
             {
@@ -42,8 +42,8 @@ namespace AtonWebApi.Controllers
            
             return Ok("User is added");
         }
-        [HttpPatch("updatelogin")]
-        public async Task<ActionResult> UpdateLogin([FromBody] ModelForUpdateLogin model)
+        [HttpPatch("UpdateLogin")]
+        public async Task<ActionResult> UpdateLogin([FromBody] ModelUpdateLogin model)
         {
             if (!ModelState.IsValid)
             {
@@ -77,8 +77,8 @@ namespace AtonWebApi.Controllers
             return Ok("Login has been successfully changed");
 
         }
-        [HttpPatch("updatepassword")]
-        public async Task<ActionResult> UpdatePassword([FromBody] ModelForUpdatePassword model)
+        [HttpPatch("UpdatePassword")]
+        public async Task<ActionResult> UpdatePassword([FromBody] ModelUpdatePassword model)
         {
             if (!ModelState.IsValid)
             {
@@ -111,13 +111,13 @@ namespace AtonWebApi.Controllers
             await _userRepository.UpdateUserAsync(targetUser);
             return Ok("Password has been successfully changed");
         }
-        [HttpPatch("updatename")]
-        public async Task<ActionResult> UpdateName([FromBody] ModelForUpdateName model)
+        [HttpPatch("UpdateName")]
+        public async Task<ActionResult> UpdateName([FromBody] ModelUpdateName model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
-            }
+            }            
             var user = await _userRepository.GetUserAsync(model.Login, model.Password);
             if (user == null)
             {
@@ -145,8 +145,8 @@ namespace AtonWebApi.Controllers
             await _userRepository.UpdateUserAsync(targetUser);
             return Ok($"{model.UserLogin}'s name has been successfully chenged");
         }
-        [HttpPatch("updatebirthday")]
-        public async Task<ActionResult> UpdateBirthday([FromBody] ModelForUpdateBirthday model)
+        [HttpPatch("UpdateBirthday")]
+        public async Task<ActionResult> UpdateBirthday([FromBody] ModelUpdateBirthday model)
         {
             if (!ModelState.IsValid)
             {
@@ -179,8 +179,8 @@ namespace AtonWebApi.Controllers
             await _userRepository.UpdateUserAsync(targetUser);
             return Ok($"{model.UserLogin}'s birthday has been successfully changed");
         }
-        [HttpPatch("updategender")]
-        public async Task<ActionResult> UpdateGender([FromBody] ModelForUpdateGender model)
+        [HttpPatch("UpdateGender")]
+        public async Task<ActionResult> UpdateGender([FromBody] ModelUpdateGender model)
         {
             if (!ModelState.IsValid)
             {
@@ -214,7 +214,7 @@ namespace AtonWebApi.Controllers
             return Ok($"{model.UserLogin}'s gender has been successfully changed");
         }
         [HttpGet("GetActiveUser")]
-        public async Task<ActionResult<User[]>> GetActiveUsers(string adminLogin, string password)
+        public async Task<ActionResult<User[]>> GetActiveUsers(string adminLogin,string password)
         {
             var user = await _userRepository.GetUserAsync(adminLogin, password);
             if (user == null)
@@ -230,9 +230,10 @@ namespace AtonWebApi.Controllers
             
         }
         [HttpGet("GetUserForAdmin")]
-        public async Task<ActionResult<User[]>> GetUser(string adminLogin, string password, string userLogin)
+        public async Task<ActionResult<User[]>> GetUser(string adminLogin,string password,string userLogin)
         {
-            var user = await _userRepository.GetUserAsync(adminLogin, password);
+           
+            var user = await _userRepository.GetUserAsync(adminLogin,password);
             if (user == null)
             {
                 return BadRequest("Invalid login or password");
@@ -251,7 +252,7 @@ namespace AtonWebApi.Controllers
             });
         }
         [HttpGet("GetUserData")]
-        public async Task<ActionResult<User>> GetUserData(string login, string password)
+        public async Task<ActionResult<User>> GetUserData(string login,string password)
         {
             var user = await _userRepository.GetUserAsync(login, password);
             if (user == null)
@@ -265,7 +266,7 @@ namespace AtonWebApi.Controllers
             return Ok(user);
         }
         [HttpGet("GetUsersByAge")]
-        public async Task<ActionResult<User[]>> GetUsersByAge(string adminLogin,string password,int age)
+        public async Task<ActionResult<User[]>> GetUsersByAge( string adminLogin,string password, int age)
         {
             var user = await _userRepository.GetUserAsync(adminLogin, password);
             if (user == null)
@@ -284,9 +285,9 @@ namespace AtonWebApi.Controllers
             return Ok(result);
         }
         [HttpDelete("DeleteUser")]
-        public async Task<ActionResult> DeleteUser(string adminLogin,string password, string userLogin)
+        public async Task<ActionResult> DeleteUser([FromBody] ModelLoginOperation model)
         {
-            var user = await _userRepository.GetUserAsync(adminLogin, password);
+            var user = await _userRepository.GetUserAsync(model.AdminLogin, model.Password);
             if (user == null)
             {
                 return BadRequest("Invalid login or password");
@@ -295,7 +296,7 @@ namespace AtonWebApi.Controllers
             {
                 return StatusCode(403, "Only admin can delete users");
             }
-            var result = await _userRepository.GetUserAsync(userLogin);
+            var result = await _userRepository.GetUserAsync(model.UserLogin);
             if (result == null)
             {
                 return NotFound("User with this login don't exists");
@@ -305,9 +306,9 @@ namespace AtonWebApi.Controllers
 
         }
         [HttpPatch("RevokeUser")]
-        public async Task<ActionResult> RevokeUser(string adminLogin, string password, string userLogin)
+        public async Task<ActionResult> RevokeUser([FromBody] ModelLoginOperation model)
         {
-            var user = await _userRepository.GetUserAsync(adminLogin, password);
+            var user = await _userRepository.GetUserAsync(model.AdminLogin, model.Password);
             if (user == null)
             {
                 return BadRequest("Invalid login or password");
@@ -316,20 +317,20 @@ namespace AtonWebApi.Controllers
             {
                 return StatusCode(403, "Only admin can revoke users");
             }
-            var result = await _userRepository.GetUserAsync(userLogin);
+            var result = await _userRepository.GetUserAsync(model.UserLogin);
             if (result == null)
             {
                 return NotFound("User with this login don't exists");
             }
-            result.RevokedBy = adminLogin;
+            result.RevokedBy = model.AdminLogin;
             result.RevokedOn = DateTime.Now;
             await _userRepository.UpdateUserAsync(result);
             return Ok("User has been successfully revoked");
         }
         [HttpPatch("UserRecovery")]
-        public async Task<ActionResult> UserRecovery(string adminLogin, string password, string userLogin)
+        public async Task<ActionResult> UserRecovery([FromBody] ModelLoginOperation model)
         {
-            var user = await _userRepository.GetUserAsync(adminLogin, password);
+            var user = await _userRepository.GetUserAsync(model.AdminLogin, model.Password);
             if (user == null)
             {
                 return BadRequest("Invalid login or password");
@@ -338,7 +339,7 @@ namespace AtonWebApi.Controllers
             {
                 return StatusCode(403, "Only admin can recovery users");
             }
-            var result = await _userRepository.GetUserAsync(userLogin);
+            var result = await _userRepository.GetUserAsync(model.UserLogin);
             if (result == null)
             {
                 return NotFound("User with this login don't exists");

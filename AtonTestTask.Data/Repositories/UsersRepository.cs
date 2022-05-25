@@ -1,10 +1,10 @@
 ﻿using AtonTestTask.Interfaces;
-using AtonWebApi.Models;
+using AtonWebApi.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AtonTestTask.Data.Repositories
 {
-    public class UsersRepository : IUserRepository
+    public class UsersRepository : IUsersRepository
     {
         private readonly ApplicationDbContext _dbContext;
         public UsersRepository(ApplicationDbContext dbContext)

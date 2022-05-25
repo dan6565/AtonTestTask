@@ -13,6 +13,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AtonTestTask.Data\AtonWebApi.Data.csproj" />
+    <ProjectReference Include="..\AtonWebApi.Entities\AtonWebApi.Entities.csproj" />
+    <ProjectReference Include="..\AtonWebApi.Services\AtonWebApi.Services.csproj" />
   </ItemGroup>
 
 </Project>

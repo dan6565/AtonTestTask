@@ -1,10 +1,9 @@
 ﻿
-
-using AtonWebApi.Models;
+using AtonWebApi.Entities;
 
 namespace AtonTestTask.Interfaces
 {
-    public interface IUserRepository
+    public interface IUsersRepository
     {
         public Task CreateUserAsync(User user);
         public Task UpdateUserAsync(User user);

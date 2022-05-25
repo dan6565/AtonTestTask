@@ -1,7 +1,8 @@
 ﻿using AtonWebApi.Attributes;
+using AtonWebApi.Dto;
 using System.ComponentModel.DataAnnotations;
 
-namespace AtonWebApi.Models
+namespace AtonWebApi.Entities
 {
     public class User
     {

@@ -1,5 +1,5 @@
 ﻿using AtonTestTask.Data.Repositories;
-using AtonWebApi.Models;
+using AtonWebApi.Entities;
 
 namespace AtonWebApi.Data.Initialiser
 {

@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AtonWebApi.Attributes\AtonWebApi.Attributes.csproj" />
+    <ProjectReference Include="..\AtonWebApi.Dto\AtonWebApi.Dto.csproj" />
   </ItemGroup>
 
 </Project>

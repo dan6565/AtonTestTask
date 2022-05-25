@@ -1,4 +1,5 @@
-﻿using AtonWebApi.Models;
+﻿
+using AtonWebApi.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AtonTestTask.Data
@@ -12,7 +13,7 @@ namespace AtonTestTask.Data
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.Entity<User>().Property(x => x.Login).IsRequired();
+            modelBuilder.Entity<User>().HasIndex(x => x.Login).IsUnique();
         
         }
         public DbSet<User> Users { get; set; }

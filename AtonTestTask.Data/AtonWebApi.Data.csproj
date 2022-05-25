@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AtonTestTask.Interfaces\AtonWebApi.Interfaces.csproj" />
+    <ProjectReference Include="..\AtonWebApi.Entities\AtonWebApi.Entities.csproj" />
     <ProjectReference Include="..\AtonWebApi.Models\AtonWebApi.Models.csproj" />
   </ItemGroup>
 

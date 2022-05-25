@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AtonTestTask.Data\AtonWebApi.Data.csproj" />
-    <ProjectReference Include="..\AtonWebApi.Models\AtonWebApi.Models.csproj" />
   </ItemGroup>
 
 </Project>
