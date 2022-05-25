@@ -6,18 +6,24 @@ namespace AtonWebApi.Models
     {
        [Key]
         public Guid Guid { get; set; }
+        [StringLength(50,MinimumLength =3)]
         public string Login { get; set; }
+        [StringLength(50, MinimumLength = 6)]
         public string Password { get; set; }
+        [StringLength(50, MinimumLength = 3)]
         public string Name { get; set; }
         public int Gender { get; set; }
         public DateTime? Birthday { get; set; }
         public bool Admin { get; set; }
-        public DateTime CreatedOn { get; set; }
-        public string CreatedBy { get; set; } = String.Empty;
-        public DateTime ModifiedOn { get; set; }
-        public string ModifiedBy { get; set; } = String.Empty;
-        public DateTime RevokedOn { get; set; }
-        public string RevokedBy { get; set; } = String.Empty;
+        public DateTime? CreatedOn { get; set; }
+        [StringLength(50, MinimumLength = 3)]
+        public string? CreatedBy { get; set; } 
+        public DateTime? ModifiedOn { get; set; }
+        [StringLength(50, MinimumLength = 3)]
+        public string? ModifiedBy { get; set; } 
+        public DateTime? RevokedOn { get; set; }
+        [StringLength(50, MinimumLength = 3)]
+        public string? RevokedBy { get; set; }
         public User() { }
         public User(UserDto userDto,string creator)
         {
@@ -27,6 +33,8 @@ namespace AtonWebApi.Models
             Gender = userDto.Gender;
             Birthday = userDto.Birthday;
             Admin = userDto.Admin;
+            CreatedBy = creator;
+            CreatedOn = DateTime.Now;
         }
     }
    
