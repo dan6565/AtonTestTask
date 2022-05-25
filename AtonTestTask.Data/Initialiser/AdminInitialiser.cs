@@ -13,12 +13,10 @@ namespace AtonWebApi.Data.Initialiser
                 Login = "admin",
                 Password = "admin",
                 Gender = 2,
-                Name = String.Empty,
-                Birthday = null,
+                Name = "admin",
+                Birthday = DateTime.Now,
                 CreatedOn = DateTime.Now,
                 CreatedBy = "default",
-                ModifiedBy = String.Empty,
-                RevokedBy = String.Empty,
                 Admin=true,
 
             };

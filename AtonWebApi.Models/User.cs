@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using AtonWebApi.Attributes;
+using System.ComponentModel.DataAnnotations;
 
 namespace AtonWebApi.Models
 {
@@ -12,6 +13,7 @@ namespace AtonWebApi.Models
         public string Password { get; set; }
         [StringLength(50, MinimumLength = 3)]
         public string Name { get; set; }
+        [Gender]
         public int Gender { get; set; }
         public DateTime? Birthday { get; set; }
         public bool Admin { get; set; }

@@ -5,7 +5,7 @@ namespace AtonWebApi.Services
     public class UsersServices
     {
         private readonly UsersRepository _repository;
-        public UserServices(UsersRepository repository)
+        public UsersServices(UsersRepository repository)
         {
             _repository = repository;
         }
@@ -21,6 +21,6 @@ namespace AtonWebApi.Services
                 return false;
             }
         }
-        public bool IsAdmin(string login)
+       
     }
 }

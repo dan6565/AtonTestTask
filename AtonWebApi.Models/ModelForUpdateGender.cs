@@ -1,16 +1,19 @@
 ﻿using AtonWebApi.Attributes;
-using System.ComponentModel.DataAnnotations;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace AtonWebApi.Models
 {
-    public class ModelForUpdatePassword
+    public class ModelForUpdateGender
     {
         public string Login { get; set; }
         public string Password { get; set; }
         [OnlyLatinLettersOrNumbers]
         public string UserLogin { get; set; }
-        [OnlyLatinLettersOrNumbers]
-        [StringLength(50, MinimumLength = 6)]
-        public string NewUserPassword { get; set; }
+        [Gender]
+        public int NewGender { get; set; }
     }
 }

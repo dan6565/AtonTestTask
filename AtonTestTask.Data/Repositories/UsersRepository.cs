@@ -15,21 +15,19 @@ namespace AtonTestTask.Data.Repositories
         public async Task CreateUserAsync(User user)
         {
            await _dbContext.Users.AddAsync(user);
-            await _dbContext.SaveChangesAsync();
+           await _dbContext.SaveChangesAsync();
         }
 
-        public async Task DeleteUser(string login)
+        public async Task DeleteUserAsync(User user)
         {
-            User result = await _dbContext.Users.FirstOrDefaultAsync(x=> x.Login == login);
-            if (result != null)
-            {
-                _dbContext.Remove(result);
-            }
+           _dbContext.Remove(user);
+           _dbContext.SaveChanges();            
         }
 
-        public async Task<List<User>> GetActiveUsers()
+        public async Task<User[]> GetActiveUsersAsync()
         {
-            return await _dbContext.Users.Where(x=>x.RevokedOn == default(DateTime)).ToListAsync();
+            return await _dbContext.Users.Where(x=>x.RevokedOn == null)
+                                         .OrderBy(x=>x.CreatedOn).ToArrayAsync();
         }
 
         public async Task<User> GetUserAsync(string login)
@@ -41,8 +39,17 @@ namespace AtonTestTask.Data.Repositories
         {
             return _dbContext.Users.FirstOrDefaultAsync(x=>x.Login==login&& x.Password==password);
         }
-
-        public async Task UpdateUser(User user)
+        public async Task<User[]> GetUsersByAgeAsync(int age)
+        {
+            var now = DateTime.Now;
+            var users = await _dbContext.Users.Where(x => x.Birthday != null).ToArrayAsync();
+            return users.Where(x =>now.Year - x.Birthday.GetValueOrDefault().Year -
+                                              ((now.Month * 100 + now.Day) < 
+                                              (x.Birthday.GetValueOrDefault().Month * 100 +x.Birthday.GetValueOrDefault().Day)
+                                              ? 1 : 0) > age).ToArray();
+            
+        }
+        public async Task UpdateUserAsync(User user)
         {
             User result = await _dbContext.Users.FirstOrDefaultAsync(x => x.Guid == user.Guid);
             if (result != null)
