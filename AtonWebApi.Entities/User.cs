@@ -11,6 +11,7 @@ namespace AtonWebApi.Entities
         [StringLength(50,MinimumLength =3)]
         public string Login { get; set; }
         [StringLength(50, MinimumLength = 6)]
+        [DataType(DataType.Password)]
         public string Password { get; set; }
         [StringLength(50, MinimumLength = 3)]
         public string Name { get; set; }

@@ -23,15 +23,19 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtonWebApi.Attributes", "At
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Entities", "Entities", "{490B9920-CCDF-4551-B1F3-9AAF3573CAB8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtonWebApi.Entities", "AtonWebApi.Entities\AtonWebApi.Entities.csproj", "{26B4BEB3-C428-4A7A-B3AE-6BB52C30A836}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtonWebApi.Entities", "AtonWebApi.Entities\AtonWebApi.Entities.csproj", "{26B4BEB3-C428-4A7A-B3AE-6BB52C30A836}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dto", "Dto", "{3979CC6A-32C6-48C5-8F37-2D79F8FFB46D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtonWebApi.Dto", "AtonWebApi.Dto\AtonWebApi.Dto.csproj", "{41C300CE-A305-44ED-B2FF-408E74B34D0E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtonWebApi.Dto", "AtonWebApi.Dto\AtonWebApi.Dto.csproj", "{41C300CE-A305-44ED-B2FF-408E74B34D0E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{053EAF73-3CC0-453F-BBCD-6A5A0B4CFC55}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtonWebApi.Services", "AtonWebApi.Services\AtonWebApi.Services.csproj", "{D58B89B5-131E-42AA-8683-77ACE2891B68}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtonWebApi.Services", "AtonWebApi.Services\AtonWebApi.Services.csproj", "{D58B89B5-131E-42AA-8683-77ACE2891B68}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Response", "Response", "{521589C2-5B6B-49DB-811E-B55551416AAB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtonWebApi.Response", "AtonWebApi.Response\AtonWebApi.Response.csproj", "{E9F226D8-657D-428B-9D6B-BA38321B6F8C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -71,6 +75,10 @@ Global
 		{D58B89B5-131E-42AA-8683-77ACE2891B68}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D58B89B5-131E-42AA-8683-77ACE2891B68}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D58B89B5-131E-42AA-8683-77ACE2891B68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9F226D8-657D-428B-9D6B-BA38321B6F8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9F226D8-657D-428B-9D6B-BA38321B6F8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9F226D8-657D-428B-9D6B-BA38321B6F8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9F226D8-657D-428B-9D6B-BA38321B6F8C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -83,6 +91,7 @@ Global
 		{26B4BEB3-C428-4A7A-B3AE-6BB52C30A836} = {490B9920-CCDF-4551-B1F3-9AAF3573CAB8}
 		{41C300CE-A305-44ED-B2FF-408E74B34D0E} = {3979CC6A-32C6-48C5-8F37-2D79F8FFB46D}
 		{D58B89B5-131E-42AA-8683-77ACE2891B68} = {053EAF73-3CC0-453F-BBCD-6A5A0B4CFC55}
+		{E9F226D8-657D-428B-9D6B-BA38321B6F8C} = {521589C2-5B6B-49DB-811E-B55551416AAB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {0ECAC60B-38A2-42CD-98AE-AA6699D88D48}

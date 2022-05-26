@@ -10,6 +10,7 @@ namespace AtonWebApi.Dto
         public string Login { get; set; }
         [OnlyLatinLettersOrNumbers]
         [StringLength(50, MinimumLength = 6)]
+        [DataType(DataType.Password)]
         public string Password { get; set; }
         [OnlyLetters]
         [StringLength(50, MinimumLength = 3)]

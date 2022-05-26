@@ -1,11 +1,11 @@
-﻿using AtonTestTask.Data.Repositories;
+﻿using AtonTestTask.Interfaces;
 using AtonWebApi.Entities;
 
 namespace AtonWebApi.Data.Initialiser
 {
     public class AdminInitializer
     {
-        public static async Task InitializeAsync(UsersRepository repository)
+        public static async Task InitializeAsync(IUsersRepository repository)
         {
             var admin = new User()
             {

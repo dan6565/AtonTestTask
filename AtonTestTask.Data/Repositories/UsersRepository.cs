@@ -29,12 +29,20 @@ namespace AtonTestTask.Data.Repositories
             return await _dbContext.Users.Where(x=>x.RevokedOn == null)
                                          .OrderBy(x=>x.CreatedOn).ToArrayAsync();
         }
+        public User GetUser(string login)
+        {
+            return _dbContext.Users.FirstOrDefault(x => x.Login == login);
+        }
 
         public async Task<User> GetUserAsync(string login)
         {
             return await _dbContext.Users.FirstOrDefaultAsync(x=>x.Login == login);
         }
-
+        
+        public User GetUser(string login,string password)
+        {
+            return _dbContext.Users.FirstOrDefault(x=>x.Login==login&&x.Password==password);
+        }
         public Task<User> GetUserAsync(string login, string password)
         {
             return _dbContext.Users.FirstOrDefaultAsync(x=>x.Login==login&& x.Password==password);

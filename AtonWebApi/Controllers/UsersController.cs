@@ -1,6 +1,8 @@
-﻿using AtonTestTask.Data.Repositories;
+﻿using AtonTestTask.Interfaces;
 using AtonWebApi.Entities;
 using AtonWebApi.Models;
+using AtonWebApi.Response;
+using AtonWebApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AtonWebApi.Controllers
@@ -9,275 +11,125 @@ namespace AtonWebApi.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly UsersRepository _userRepository;
-       
-        public UsersController(UsersRepository usersRepository) { _userRepository = usersRepository; }
+        private readonly UsersService _usersService;
+
+        public UsersController(IUsersRepository usersRepository,UsersService usersService) 
+        { 
+            _usersService = usersService;
+        }
         [HttpPost("Create")]
-        public async Task<ActionResult> CreateUser([FromBody] ModelCreating model)
+        public async Task<ActionResult> CreateUserAsync([FromBody] ModelCreating model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
+            var response = await _usersService.CreateUser(model.Login, model.Password, model.User);
 
-            var user = await _userRepository.GetUserAsync(model.Login, model.Password);
-            if (user == null)
-            {
-                return StatusCode(403,"Invalid login or password");
-            }
-            if (user.Admin != true)
-            {
-                return StatusCode(403, "Only administrator can create users");
-            }
+            return StatusCode((int)response.StatusCode, response.Description);
 
-            var result = await _userRepository.GetUserAsync(model.User.Login);
-
-            if (result != null)
-            {
-                return BadRequest("User with this login already exists");
-            }
-
-            var newUser = new User(model.User,model.Login);
-            await _userRepository.CreateUserAsync(newUser);            
-           
-            return Ok("User is added");
         }
         [HttpPatch("UpdateLogin")]
-        public async Task<ActionResult> UpdateLogin([FromBody] ModelUpdateLogin model)
+        public async Task<ActionResult> UpdateLoginAsync([FromBody] ModelUpdateLogin model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            var user = await _userRepository.GetUserAsync(model.Login, model.Password);
-            if (user == null)
-            {
-                return StatusCode(403, "Invalid login or password");
-            }
-            if(user.Admin != true)
-            {
-                if (model.Login != model.PreviousUserLogin)
-                {
-                    return StatusCode(403, "Only the user or the administrator can make changes to the user's properties");
-                }
-                if (user.RevokedOn!=null)
-                {
-                    return StatusCode(403, "The rights of the user performing the operation have been revoked");
-                }
-            }
-            var targetUser = await _userRepository.GetUserAsync(model.PreviousUserLogin);
-            if (targetUser == null)
-            {
-                return NotFound("User with this login doesn't exist");
-            }
-            targetUser.Login = model.NewUserLogin;
-            targetUser.ModifiedBy = model.Login;
-            targetUser.ModifiedOn = DateTime.Now;
-            await _userRepository.UpdateUserAsync(targetUser);
-            return Ok("Login has been successfully changed");
-
+            var response = await _usersService.UpdateLogin(model.Login, model.Password, model.PreviousUserLogin, model.NewUserLogin);
+            return StatusCode((int)response.StatusCode, response.Description);
         }
         [HttpPatch("UpdatePassword")]
-        public async Task<ActionResult> UpdatePassword([FromBody] ModelUpdatePassword model)
+        public async Task<ActionResult> UpdatePasswordAsync([FromBody] ModelUpdatePassword model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            var user = await _userRepository.GetUserAsync(model.Login, model.Password);
-            if (user == null)
-            {
-                return StatusCode(403, "Invalid login or password");
-            }
-            if (user.Admin != true)
-            {
-                if (model.Login != model.UserLogin)
-                {
-                    return StatusCode(403, "Only the user or the administrator can make changes to the user's properties");
-                }
-                if (user.RevokedOn != null)
-                {
-                    return StatusCode(403, "The rights of the user performing the operation have been revoked");
-                }
-            }
-            var targetUser = await _userRepository.GetUserAsync(model.UserLogin);
-            if (targetUser == null)
-            {
-                return NotFound("User with this login doesn't exist");
-            }
-            targetUser.Password = model.NewUserPassword;
-            targetUser.ModifiedBy = model.Login;
-            targetUser.ModifiedOn = DateTime.Now;
-            await _userRepository.UpdateUserAsync(targetUser);
-            return Ok("Password has been successfully changed");
+            
+            var response = await _usersService.UpdatePasswordAsync(model.Login, model.Password, model.UserLogin, model.NewUserPassword);
+            return StatusCode((int)response.StatusCode, response.Description);
         }
         [HttpPatch("UpdateName")]
-        public async Task<ActionResult> UpdateName([FromBody] ModelUpdateName model)
+        public async Task<ActionResult> UpdateNameAsync([FromBody] ModelUpdateName model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
-            }            
-            var user = await _userRepository.GetUserAsync(model.Login, model.Password);
-            if (user == null)
-            {
-                return StatusCode(403, "Invalid login or password");
             }
-            if (user.Admin != true)
-            {
-                if (model.Login != model.UserLogin)
-                {
-                    return StatusCode(403, "Only the user or the administrator can make changes to the user's properties");
-                }
-                if (user.RevokedOn != null)
-                {
-                    return StatusCode(403, "The rights of the user performing the operation have been revoked");
-                }
-            }
-            var targetUser = await _userRepository.GetUserAsync(model.UserLogin);
-            if (targetUser == null)
-            {
-                return NotFound("User with this login doesn't exist");
-            }
-            targetUser.Name = model.NewUserName;
-            targetUser.ModifiedBy = model.Login;
-            targetUser.ModifiedOn = DateTime.Now;
-            await _userRepository.UpdateUserAsync(targetUser);
-            return Ok($"{model.UserLogin}'s name has been successfully chenged");
+            var response = await _usersService.UpdateNameAsync(model.Login, model.Password, model.UserLogin, model.NewUserName);
+            return StatusCode((int)response.StatusCode, response.Description);
         }
         [HttpPatch("UpdateBirthday")]
-        public async Task<ActionResult> UpdateBirthday([FromBody] ModelUpdateBirthday model)
+        public async Task<ActionResult> UpdateBirthdayAsync([FromBody] ModelUpdateBirthday model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            var user = await _userRepository.GetUserAsync(model.Login, model.Password);
-            if (user == null)
-            {
-                return StatusCode(403, "Invalid login or password");
-            }
-            if (user.Admin != true)
-            {
-                if (model.Login != model.UserLogin)
-                {
-                    return StatusCode(403, "Only the user or the administrator can make changes to the user's properties");
-                }
-                if (user.RevokedOn != null)
-                {
-                    return StatusCode(403, "The rights of the user performing the operation have been revoked");
-                }
-            }
-            var targetUser = await _userRepository.GetUserAsync(model.UserLogin);
-            if (targetUser == null)
-            {
-                return NotFound("User with this login doesn't exist");
-            }
-            targetUser.Birthday = model.NewBirthday;
-            targetUser.ModifiedBy = model.Login;
-            targetUser.ModifiedOn = DateTime.Now;
-            await _userRepository.UpdateUserAsync(targetUser);
-            return Ok($"{model.UserLogin}'s birthday has been successfully changed");
+            var response = await _usersService.UpdateBirthdayAsync(model.Login, model.Password, model.UserLogin, model.NewBirthday);
+            return StatusCode((int)response.StatusCode, response.Description);
         }
         [HttpPatch("UpdateGender")]
-        public async Task<ActionResult> UpdateGender([FromBody] ModelUpdateGender model)
+        public async Task<ActionResult> UpdateGenderAsync([FromBody] ModelUpdateGender model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            var user = await _userRepository.GetUserAsync(model.Login, model.Password);
-            if (user == null)
-            {
-                return StatusCode(403, "Invalid login or password");
-            }
-            if (user.Admin != true)
-            {
-                if (model.Login != model.UserLogin)
-                {
-                    return StatusCode(403, "Only the user or the administrator can make changes to the user's properties");
-                }
-                if (user.RevokedOn != null)
-                {
-                    return StatusCode(403, "The rights of the user performing the operation have been revoked");
-                }
-            }
-            var targetUser = await _userRepository.GetUserAsync(model.UserLogin);
-            if (targetUser == null)
-            {
-                return NotFound("User with this login doesn't exist");
-            }
-            targetUser.Gender = model.NewGender;
-            targetUser.ModifiedBy = model.Login;
-            targetUser.ModifiedOn = DateTime.Now;
-            await _userRepository.UpdateUserAsync(targetUser);
-            return Ok($"{model.UserLogin}'s gender has been successfully changed");
+            var response = await _usersService.UpdateGenderAsync(model.Login, model.Password, model.UserLogin, model.NewGender);
+            return StatusCode((int)response.StatusCode, response.Description);
         }
-        [HttpGet("GetActiveUser")]
-        public async Task<ActionResult<User[]>> GetActiveUsers(string adminLogin,string password)
+        [HttpGet("GetActiveUsers")]
+        public async Task<ActionResult<User[]>> GetActiveUsersAsync(string adminLogin,string password)
         {
-            var user = await _userRepository.GetUserAsync(adminLogin, password);
-            if (user == null)
+            var response = await _usersService.GetActiveUsersAsync(adminLogin, password);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
-                return BadRequest("Invalid login or password");
+                return StatusCode((int)response.StatusCode, response.Description);
             }
-            if (user.Admin == false)
-            {
-                return BadRequest("Only admin can reсeive list of users");
-            }
-            var result = await _userRepository.GetActiveUsersAsync();
+            var result = ((BaseResponse<User[]>)response).Data;
             return Ok(result);
             
         }
         [HttpGet("GetUserForAdmin")]
-        public async Task<ActionResult<User[]>> GetUser(string adminLogin,string password,string userLogin)
+        public ActionResult<User> GetUserForAdminAsync(string adminLogin,string password,string userLogin)
         {
-           
-            var user = await _userRepository.GetUserAsync(adminLogin,password);
-            if (user == null)
+
+            var response =  _usersService.GetUserDataForAdmin(adminLogin, password, userLogin);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
-                return BadRequest("Invalid login or password");
+                return StatusCode((int)response.StatusCode, response.Description);
             }
-            if (user.Admin == false)
-            {
-                return BadRequest("Only admin can reсeive data of users");
-            }
-            var result = await _userRepository.GetUserAsync(userLogin);
+            var user = ((BaseResponse<User>)response).Data;
             return Ok(new
             {
-                Name = result.Name,
-                Gender = result.Gender,
-                Birthday = result.Birthday,
-                Active = result.RevokedOn == null ? true : false
+                Name = user.Name,
+                Gender = user.Gender,
+                Birthday = user.Birthday,
+                Active = user.RevokedOn == null ? true : false
             });
         }
         [HttpGet("GetUserData")]
-        public async Task<ActionResult<User>> GetUserData(string login,string password)
+        public ActionResult<User> GetUserData(string login,string password)
         {
-            var user = await _userRepository.GetUserAsync(login, password);
-            if (user == null)
+            var response = _usersService.GetUserData(login, password);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
-                return BadRequest("Invalid login or password");
+                return StatusCode((int)response.StatusCode,response.Description);
             }
-            if (user.RevokedOn != null)
-            {
-                return StatusCode(403, "The rights of the user performing the operation have been revoked");
-            }
-            return Ok(user);
+            var result = ((BaseResponse<User>)response).Data;
+            return Ok(result);
         }
         [HttpGet("GetUsersByAge")]
         public async Task<ActionResult<User[]>> GetUsersByAge( string adminLogin,string password, int age)
         {
-            var user = await _userRepository.GetUserAsync(adminLogin, password);
-            if (user == null)
+            var response = await _usersService.GetUsersByAgeAsync(adminLogin, password,age);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
-                return BadRequest("Invalid login or password");
+                return StatusCode((int)response.StatusCode, response.Description);
             }
-            if (user.Admin == false)
-            {
-                return BadRequest("Only admin can reсeive data of users");
-            }
-            var result = await _userRepository.GetUsersByAgeAsync(age);
+            var result = ((BaseResponse<User[]>)response).Data;
             if (result.Length == 0)
             {
                 return Ok("These users weren't found");
@@ -285,69 +137,35 @@ namespace AtonWebApi.Controllers
             return Ok(result);
         }
         [HttpDelete("DeleteUser")]
-        public async Task<ActionResult> DeleteUser([FromBody] ModelLoginOperation model)
+        public async Task<ActionResult> DeleteUserAsync([FromBody] ModelLoginOperation model)
         {
-            var user = await _userRepository.GetUserAsync(model.AdminLogin, model.Password);
-            if (user == null)
+            var response = await _usersService.DeleteUserAsync(model.AdminLogin, model.Password, model.UserLogin);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
-                return BadRequest("Invalid login or password");
+                return StatusCode((int)response.StatusCode, response.Description);
             }
-            if (user.Admin == false)
-            {
-                return StatusCode(403, "Only admin can delete users");
-            }
-            var result = await _userRepository.GetUserAsync(model.UserLogin);
-            if (result == null)
-            {
-                return NotFound("User with this login don't exists");
-            }
-            await _userRepository.DeleteUserAsync(result);
-            return Ok("User has been successfully deleted");
+            return Ok(response.Description);
 
         }
         [HttpPatch("RevokeUser")]
         public async Task<ActionResult> RevokeUser([FromBody] ModelLoginOperation model)
         {
-            var user = await _userRepository.GetUserAsync(model.AdminLogin, model.Password);
-            if (user == null)
+            var response = await _usersService.RevokeUserAsync(model.AdminLogin, model.Password, model.UserLogin);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
-                return BadRequest("Invalid login or password");
+                return StatusCode((int)response.StatusCode, response.Description);
             }
-            if (user.Admin == false)
-            {
-                return StatusCode(403, "Only admin can revoke users");
-            }
-            var result = await _userRepository.GetUserAsync(model.UserLogin);
-            if (result == null)
-            {
-                return NotFound("User with this login don't exists");
-            }
-            result.RevokedBy = model.AdminLogin;
-            result.RevokedOn = DateTime.Now;
-            await _userRepository.UpdateUserAsync(result);
-            return Ok("User has been successfully revoked");
+            return Ok(response.Description);
         }
         [HttpPatch("UserRecovery")]
-        public async Task<ActionResult> UserRecovery([FromBody] ModelLoginOperation model)
+        public async Task<ActionResult> UserRecoveryAsync([FromBody] ModelLoginOperation model)
         {
-            var user = await _userRepository.GetUserAsync(model.AdminLogin, model.Password);
-            if (user == null)
+            var response = await _usersService.RecoveryUserAsync(model.AdminLogin, model.Password, model.UserLogin);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
-                return BadRequest("Invalid login or password");
+                return StatusCode((int)response.StatusCode, response.Description);
             }
-            if (user.Admin == false)
-            {
-                return StatusCode(403, "Only admin can recovery users");
-            }
-            var result = await _userRepository.GetUserAsync(model.UserLogin);
-            if (result == null)
-            {
-                return NotFound("User with this login don't exists");
-            }
-            result.RevokedBy = null;
-            result.RevokedOn = null;
-            await _userRepository.UpdateUserAsync(result);
-            return Ok("User has been successfully recovered");
+            return Ok(response.Description);
         }
     }
 }
