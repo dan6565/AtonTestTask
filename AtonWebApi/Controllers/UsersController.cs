@@ -93,7 +93,7 @@ namespace AtonWebApi.Controllers
             
         }
         [HttpGet("GetUserForAdmin")]
-        public ActionResult<User> GetUserForAdminAsync(string adminLogin,string password,string userLogin)
+        public ActionResult GetUserDataForAdminAsync(string adminLogin,string password,string userLogin)
         {
 
             var response =  _usersService.GetUserDataForAdmin(adminLogin, password, userLogin);

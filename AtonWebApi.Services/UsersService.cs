@@ -10,9 +10,12 @@ namespace AtonWebApi.Services
     public class UsersService
     {
         private readonly IUsersRepository _usersRepository;
-        public UsersService(IUsersRepository usersRepository)
+        private readonly AuthService _authService;
+
+        public UsersService(IUsersRepository usersRepository,AuthService authService)
         {
             _usersRepository = usersRepository;
+            _authService = authService;
         }
         public async Task<IBaseResponse> CreateUser(string login,string password, UserDto userDto)
         {
@@ -29,7 +32,8 @@ namespace AtonWebApi.Services
                     Description = "User with this login already exists"
                 };
             }
-            var newUser = new User(userDto, login);
+            var hashPassword = _authService.GetHashPassword(password);
+            var newUser = new User(userDto, login,hashPassword);
             await _usersRepository.CreateUserAsync(newUser);
 
             return new BaseResponse() { StatusCode = StatusCode.Ok,Description="User was successfully added" };
@@ -180,38 +184,23 @@ namespace AtonWebApi.Services
         }
         public async Task<IBaseResponse> DeleteUserAsync(string adminLogin,string password,string userLogin)
         {
-            var response = CheckAdminData(adminLogin, password);
+            var response = CheckDataForOnlyAdminOperation(adminLogin, password, userLogin);
             if (response.StatusCode != StatusCode.Ok)
             {
                 return response;
             }
-            if(!TryGetUserByLogin(userLogin,out User user))
-            {
-                return new BaseResponse()
-                {
-                    StatusCode = StatusCode.NotFound,
-                    Description = "User with this login don't found"
-                };
-            }
+            var user = ((BaseResponse<User>)response).Data;
             await _usersRepository.DeleteUserAsync(user);
             return new BaseResponse() { StatusCode = StatusCode.Ok, Description = "User has been successfully deleted" };
         }
         public async Task<IBaseResponse> RevokeUserAsync(string adminLogin,string password,string userLogin)
         {
-            var response = CheckAdminData(adminLogin, password);
+            var response = CheckDataForOnlyAdminOperation(adminLogin, password, userLogin);
             if (response.StatusCode != StatusCode.Ok)
             {
                 return response;
             }
-
-            if (!TryGetUserByLogin(userLogin, out User user))
-            {
-                return new BaseResponse()
-                {
-                    StatusCode = StatusCode.NotFound,
-                    Description = "User with this login don't found"
-                };
-            }
+            var user = ((BaseResponse<User>)response).Data;
             user.RevokedBy = adminLogin;
             user.RevokedOn = DateTime.Now;
             await _usersRepository.UpdateUserAsync(user);
@@ -223,6 +212,23 @@ namespace AtonWebApi.Services
         }
         public async Task<IBaseResponse> RecoveryUserAsync(string adminLogin, string password, string userLogin)
         {
+            var response = CheckDataForOnlyAdminOperation(adminLogin, password, userLogin);
+            if (response.StatusCode != StatusCode.Ok)
+            {
+                return response;
+            }
+            var user = ((BaseResponse<User>)response).Data;
+            user.RevokedBy = null;
+            user.RevokedOn = null;
+            await _usersRepository.UpdateUserAsync(user);
+            return new BaseResponse()
+            {
+                StatusCode = StatusCode.Ok,
+                Description = "User has been successfully recovered"
+            };
+        }
+        private IBaseResponse CheckDataForOnlyAdminOperation(string adminLogin,string password,string userLogin)
+        {
             var response = CheckAdminData(adminLogin, password);
             if (response.StatusCode != StatusCode.Ok)
             {
@@ -237,13 +243,10 @@ namespace AtonWebApi.Services
                     Description = "User with this login don't found"
                 };
             }
-            user.RevokedBy = null;
-            user.RevokedOn = null;
-            await _usersRepository.UpdateUserAsync(user);
-            return new BaseResponse()
+            return new BaseResponse<User>()
             {
                 StatusCode = StatusCode.Ok,
-                Description = "User has been successfully recovered"
+                Data = user
             };
         }
         private IBaseResponse CheckAdminData(string login,string password)

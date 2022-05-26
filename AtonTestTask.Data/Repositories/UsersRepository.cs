@@ -21,7 +21,7 @@ namespace AtonTestTask.Data.Repositories
         public async Task DeleteUserAsync(User user)
         {
            _dbContext.Remove(user);
-           _dbContext.SaveChanges();            
+           await _dbContext.SaveChangesAsync();            
         }
 
         public async Task<User[]> GetActiveUsersAsync()
@@ -43,9 +43,9 @@ namespace AtonTestTask.Data.Repositories
         {
             return _dbContext.Users.FirstOrDefault(x=>x.Login==login&&x.Password==password);
         }
-        public Task<User> GetUserAsync(string login, string password)
+        public async Task<User> GetUserAsync(string login, string password)
         {
-            return _dbContext.Users.FirstOrDefaultAsync(x=>x.Login==login&& x.Password==password);
+            return await _dbContext.Users.FirstOrDefaultAsync(x=>x.Login==login&& x.Password==password);
         }
         public async Task<User[]> GetUsersByAgeAsync(int age)
         {
@@ -63,7 +63,7 @@ namespace AtonTestTask.Data.Repositories
             if (result != null)
             {
                 result = user;
-                _dbContext.SaveChanges();
+                await _dbContext.SaveChangesAsync();
             }
         }
     }

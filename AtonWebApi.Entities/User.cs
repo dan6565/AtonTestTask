@@ -10,7 +10,7 @@ namespace AtonWebApi.Entities
         public Guid Guid { get; set; }
         [StringLength(50,MinimumLength =3)]
         public string Login { get; set; }
-        [StringLength(50, MinimumLength = 6)]
+        [StringLength(150, MinimumLength = 6)]
         [DataType(DataType.Password)]
         public string Password { get; set; }
         [StringLength(50, MinimumLength = 3)]
@@ -29,10 +29,10 @@ namespace AtonWebApi.Entities
         [StringLength(50, MinimumLength = 3)]
         public string? RevokedBy { get; set; }
         public User() { }
-        public User(UserDto userDto,string creator)
+        public User(UserDto userDto,string creator,string hashPassword)
         {
             Login = userDto.Login;
-            Password = userDto.Password;
+            Password = hashPassword;
             Name = userDto.Name;
             Gender = userDto.Gender;
             Birthday = userDto.Birthday;
