@@ -11,9 +11,7 @@ namespace AtonTestTask.Interfaces
         public Task<User> GetUserAsync(string login);
         public Task<User> GetUserAsync(string login,string password);
         public Task<User[]> GetUsersByAgeAsync(int age);
-        public Task<User[]> GetActiveUsersAsync();
-        public User GetUser(string login);
-        public User GetUser(string login, string password);
+        public Task<User[]> GetActiveUsersAsync();       
         public bool TryGetUserByLogin(string login, out User user);
         public Task<bool> UserExistsAsync(string login);
 

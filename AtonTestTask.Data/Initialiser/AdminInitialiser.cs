@@ -9,22 +9,26 @@ namespace AtonWebApi.Data.Initialiser
     {
         public static async Task InitializeAsync(IUsersRepository repository,IConfiguration configuration)
         {
-            var admin = new User()
+            User user = await repository.GetUserAsync("admin");
+            if (user == null)
             {
-                Guid = Guid.NewGuid(),
-                Login = "admin",
-                Password = GetHashPassword("admin",configuration.GetSection("AppSettings:SecretKey").Value),
-                Gender = 2,
-                Name = "admin",
-                Birthday = DateTime.Now,
-                CreatedOn = DateTime.Now,
-                CreatedBy = "default",
-                Admin=true
+                var admin = new User()
+                {
+                    Guid = Guid.NewGuid(),
+                    Login = "admin",
+                    Password = GetHashPassword("admin", configuration.GetSection("AppSettings:SecretKey").Value),
+                    Gender = 2,
+                    Name = "admin",
+                    Birthday = DateTime.Now,
+                    CreatedOn = DateTime.Now,
+                    CreatedBy = "default",
+                    Admin = true
 
-            };
-            User user = await repository.GetUserAsync(admin.Login);
-            if(user==null)
-            await repository.CreateUserAsync(admin);            
+                };
+
+                await repository.CreateUserAsync(admin);
+            }
+                         
         }
         private static string GetHashPassword(string password,string secretKey)
         {

@@ -90,14 +90,14 @@ namespace AtonWebApi.Services
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var claims = tokenHandler.ReadJwtToken(token).Claims;
-            var role = claims.FirstOrDefault(x => x.Type == ClaimTypes.Role).Value;
+            var role = claims.FirstOrDefault(x => x.Type == ClaimTypes.Role)?.Value;
             return role=="Admin";
         }
         public string GetUserLogin(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var claims = tokenHandler.ReadJwtToken(token).Claims;
-            var login = claims.FirstOrDefault(x => x.Type == ClaimTypes.Name).Value;
+            var login = claims.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value;
             return login;
         }
         public IBaseResponse VerifyAdmin(string token)
@@ -112,7 +112,7 @@ namespace AtonWebApi.Services
             }            
             var tokenHandler = new JwtSecurityTokenHandler();
             var claims = tokenHandler.ReadJwtToken(token).Claims;
-            var role = claims.FirstOrDefault(x=>x.Type== ClaimTypes.Role).Value;
+            var role = claims.FirstOrDefault(x=>x.Type== ClaimTypes.Role)?.Value;
             if (role != "Admin")
             {
                 return new BaseResponse()

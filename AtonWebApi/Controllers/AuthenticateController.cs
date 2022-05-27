@@ -2,19 +2,16 @@
 using AtonWebApi.Response;
 using AtonWebApi.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 
 namespace AtonWebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class AuthenticateController : ControllerBase
-    {
-        private readonly IConfiguration _configuration;
+    {  
         private readonly AuthService _authService;
-        public AuthenticateController( IConfiguration configuration, AuthService authService)
-        {          
-            _configuration = configuration;
+        public AuthenticateController(AuthService authService)
+        {        
             _authService = authService;
         }
         [HttpPost("authenticate")]
