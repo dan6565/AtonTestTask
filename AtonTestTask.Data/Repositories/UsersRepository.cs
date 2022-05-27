@@ -66,5 +66,25 @@ namespace AtonTestTask.Data.Repositories
                 await _dbContext.SaveChangesAsync();
             }
         }
+
+        public bool TryGetUserByLogin(string login, out User user)
+        {
+             user =  _dbContext.Users.FirstOrDefault(x => x.Login == login);
+            if (user == null)
+            {
+                return false;
+            }
+            return true;
+        }
+
+        public async Task<bool> UserExistsAsync(string login)
+        {
+            var user = await _dbContext.Users.FirstOrDefaultAsync(x => x.Login == login);
+            if (user == null)
+            {
+                return false;
+            }
+            return true;
+        }
     }
 }

@@ -1,9 +1,11 @@
 ﻿using AtonTestTask.Interfaces;
 using AtonWebApi.Dto;
 using AtonWebApi.Entities;
+using AtonWebApi.Helpers;
 using AtonWebApi.Response;
+using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
-
+using System.Security.Cryptography;
 
 namespace AtonWebApi.Services
 {
@@ -11,22 +13,30 @@ namespace AtonWebApi.Services
     {
         private readonly IUsersRepository _usersRepository;
         private readonly AuthService _authService;
+        private readonly IConfiguration _configuration;
 
-        public UsersService(IUsersRepository usersRepository,AuthService authService)
+        public UsersService(IUsersRepository usersRepository,AuthService authService,IConfiguration configuration)
         {
             _usersRepository = usersRepository;
             _authService = authService;
+            _configuration = configuration;
         }
-        public async Task<IBaseResponse> CreateUser(string token, UserDto userDto)
+        public async Task<IBaseResponse> CreateUserAsync(string creator, UserDto userDto)
         {
-            _authService.CheckUserToken(token);
-            //var hashPassword = _authService.GetHashPassword(password);
-            //var response = CheckAdminData(login, hashPassword);
-            //if (response.StatusCode != StatusCode.Ok)
-            //{
-            //    return response;
-            //}            
-            if(await UserExists(userDto.Login))
+            bool exists;
+            try
+            {
+                exists = await _usersRepository.UserExistsAsync(userDto.Login);
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
+            if (exists)
             {
                 return new BaseResponse()
                 {
@@ -34,115 +44,216 @@ namespace AtonWebApi.Services
                     Description = "User with this login already exists"
                 };
             }
-            var hashNewUserPassword = _authService.GetHashPassword(userDto.Password);
-            //var newUser = new User(userDto, login, hashNewUserPassword);
-            //await _usersRepository.CreateUserAsync(newUser);
+            var sercretKey = _configuration.GetSection("AppSettings:SecretKey").Value;
+            var hashUserPassword = PasswordHesher.GetHashPassword(userDto.Password,sercretKey);            
+            var newUser = new User(userDto, creator, hashUserPassword);
+            try
+            {
+                await _usersRepository.CreateUserAsync(newUser);
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }            
 
             return new BaseResponse() { StatusCode = StatusCode.Ok,Description="User has been successfully added" };
         }
-        public async Task<IBaseResponse> UpdateLogin(string login,string password, string userLogin,string newUserLogin)
+        public async Task<IBaseResponse> UpdateLoginAsync(string modifiedBy, string userLogin,string newUserLogin)
         {
-            var response = CheckInputData(login, password, userLogin);
-            if (response.StatusCode != StatusCode.Ok)
+            User user = null;
+            try
             {
-                return response;
+                bool userExists = _usersRepository.TryGetUserByLogin(userLogin, out user);
+                if (!userExists)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.NotFound,
+                        Description = "User with this doesn't exist"
+                    };
+                }
+                userExists =await _usersRepository.UserExistsAsync(newUserLogin);
+                if (userExists)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.BadRequest,
+                        Description = "User with this login already exists"
+                    };
+                }
+                user.Login = newUserLogin;
+                UpdateModifyFields(user, modifiedBy);
+                await _usersRepository.UpdateUserAsync(user);
             }
-            var user = ((BaseResponse<User>)response).Data;
-            if (await UserExists(newUserLogin))
+            catch (Exception ex)
             {
                 return new BaseResponse()
                 {
-                    StatusCode = StatusCode.BadRequest,
-                    Description = "User with this login already exists"
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
                 };
             }
-            user.Login = newUserLogin;
-            UpdateModifyFields(user, login);
-            await _usersRepository.UpdateUserAsync(user);
-
-            return new BaseResponse() { StatusCode = StatusCode.Ok, Description = "Login has been successfully changed" };
+            var sercretKey = _configuration.GetSection("AppSettings:SecretKey").Value;
+            var newToken = _authService.CreateToken(sercretKey, user);
+            return new BaseResponse() { StatusCode = StatusCode.Ok, Description = $"Login has been successfully changed\nNew Token: {newToken}" };
         }
 
-        public async Task<IBaseResponse> UpdatePasswordAsync(string login, string password, string userLogin, string newUserPassword)
+        public async Task<IBaseResponse> UpdatePasswordAsync(string modifiedBy, string userLogin, string newUserPassword)
         {
-            var response = CheckInputData(login, password, userLogin);
-            if (response.StatusCode != StatusCode.Ok)
+            try
             {
-                return response;
+                bool userExists = _usersRepository.TryGetUserByLogin(userLogin, out User user);
+                if (!userExists)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.NotFound,
+                        Description = "User with this doesn't exist"
+                    };
+                }
+                user.Password = newUserPassword;
+                UpdateModifyFields(user, modifiedBy);
+                await _usersRepository.UpdateUserAsync(user);
             }
-            var user = ((BaseResponse<User>)response).Data;
-            user.Password = newUserPassword;
-            UpdateModifyFields(user, login);
-            await _usersRepository.UpdateUserAsync(user);
-
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
+            
             return new BaseResponse() { StatusCode = StatusCode.Ok, Description = "Password has been successfully changed" };            
         }
-        public async Task<IBaseResponse> UpdateNameAsync(string login,string password,string userLogin,string newUserName)
+        public async Task<IBaseResponse> UpdateNameAsync(string modifiedBy, string userLogin,string newUserName)
         {
-            var response = CheckInputData(login, password, userLogin);
-            if (response.StatusCode != StatusCode.Ok)
-            {
-                return response;
-            }
-            var user = ((BaseResponse<User>)response).Data;
-            user.Name = newUserName;
-            UpdateModifyFields(user, login);
-            await _usersRepository.UpdateUserAsync(user);
 
-            return new BaseResponse() { StatusCode = StatusCode.Ok, Description = "Name has been successfully changed" };
-            
+            try
+            {
+                bool userExists = _usersRepository.TryGetUserByLogin(userLogin, out User user);
+                if (!userExists)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.NotFound,
+                        Description = "User with this doesn't exist"
+                    };
+                }
+                user.Name = newUserName;
+                UpdateModifyFields(user, modifiedBy);
+                await _usersRepository.UpdateUserAsync(user);
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
+            return new BaseResponse() { StatusCode = StatusCode.Ok, Description = "Name has been successfully changed" };            
         }
-        public async Task<IBaseResponse> UpdateGenderAsync(string login,string password,string userLogin,int gender)
+        public async Task<IBaseResponse> UpdateGenderAsync(string modifiedBy, string userLogin,int gender)
         {
-            var response = CheckInputData(login, password, userLogin);
-            if (response.StatusCode != StatusCode.Ok)
-            {
-                return response;
-            }
-            var user = ((BaseResponse<User>)response).Data;
-            user.Gender = gender;
-            UpdateModifyFields(user, login);
-            await _usersRepository.UpdateUserAsync(user);
 
+            try
+            {
+                bool userExists = _usersRepository.TryGetUserByLogin(userLogin, out User user);
+                if (!userExists)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.NotFound,
+                        Description = "User with this doesn't exist"
+                    };
+                }
+                user.Gender = gender;
+                UpdateModifyFields(user, modifiedBy);
+                await _usersRepository.UpdateUserAsync(user);
+
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
+           
             return new BaseResponse() { StatusCode = StatusCode.Ok, Description = "Gender has been successfully changed" };
         }
-        public async Task<IBaseResponse> UpdateBirthdayAsync(string login,string password,string userLogin,DateTime newUserBirthday)
+        public async Task<IBaseResponse> UpdateBirthdayAsync(string modifiedBy, string userLogin,DateTime newUserBirthday)
         {
-            var response =  CheckInputData(login, password, userLogin);
-            if (response.StatusCode != StatusCode.Ok)
+            try
             {
-                return response;
-            }
-            var user = ((BaseResponse<User>)response).Data;
-            user.Birthday = newUserBirthday;
-            UpdateModifyFields(user, login);
-            await _usersRepository.UpdateUserAsync(user);
+                bool userExists = _usersRepository.TryGetUserByLogin(userLogin, out User user);
+                if (!userExists)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.NotFound,
+                        Description = "User with this doesn't exist"
+                    };
+                }
+                user.Birthday = newUserBirthday;
+                UpdateModifyFields(user, modifiedBy);
+                await _usersRepository.UpdateUserAsync(user);
 
-            return new BaseResponse() { StatusCode = StatusCode.Ok, Description = "Birthday has been successfully changed" };
-           
-        }
-        public async Task<IBaseResponse> GetActiveUsersAsync(string login,string password)
-        {
-            var response = CheckAdminData(login, password);
-            if (response.StatusCode != StatusCode.Ok)
-            {
-                return response;
             }
-            var users = await _usersRepository.GetActiveUsersAsync();
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
+            return new BaseResponse() { StatusCode = StatusCode.Ok, Description = "Birthday has been successfully changed" };           
+        }
+        public async Task<IBaseResponse> GetActiveUsersAsync()
+        {
+            User[] users;
+            try
+            {
+                users = await _usersRepository.GetActiveUsersAsync();
+            }
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
             return new BaseResponse<User[]>()
             {
                 StatusCode = StatusCode.Ok,
                 Data = users
             };
         }
-        public IBaseResponse GetUserDataForAdmin(string login,string password,string userLogin)
+        public IBaseResponse GetUserDataForAdmin(string userLogin)
         {
-            var response = CheckAdminData(login, password);
-            if (response.StatusCode != StatusCode.Ok)
+            User user = null;
+            bool userExists;
+            try
             {
-                return response;
+                userExists = _usersRepository.TryGetUserByLogin(userLogin, out user);
             }
-            if(!TryGetUserByLogin(userLogin,out User user))
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
+            if (!userExists)
             {
                 return new BaseResponse()
                 {
@@ -156,200 +267,144 @@ namespace AtonWebApi.Services
                 Data = user
             };
         }
-        public  IBaseResponse GetUserData(string login,string password)
+        public  async Task<IBaseResponse> GetUserDataAsync(string login)
         {
-            var response =  CheckInputData(login, password, login);
-            if (response.StatusCode != StatusCode.Ok)
+            User user = null;            
+            try
             {
-                return response;
+                 user = await _usersRepository.GetUserAsync(login);
             }
-            var user = ((BaseResponse<User>)response).Data;
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
             return new BaseResponse<User>()
             {
                 StatusCode= StatusCode.Ok,
                 Data = user
             };
         }
-        public async Task<IBaseResponse> GetUsersByAgeAsync(string adminLogin,string password,int age)
+        public async Task<IBaseResponse> GetUsersByAgeAsync(int age)
         {
-            var response = CheckAdminData(adminLogin, password);
-            if (response.StatusCode != StatusCode.Ok)
+            User[] users;
+            try
             {
-                return response;
+                users = await _usersRepository.GetUsersByAgeAsync(age);
             }
-            var users = await _usersRepository.GetUsersByAgeAsync(age);
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
             return new BaseResponse<User[]>()
             {
                 StatusCode = StatusCode.Ok,
                 Data = users
             };
         }
-        public async Task<IBaseResponse> DeleteUserAsync(string adminLogin,string password,string userLogin)
+        public async Task<IBaseResponse> DeleteUserAsync(string userLogin)
         {
-            var response = CheckDataForOnlyAdminOperation(adminLogin, password, userLogin);
-            if (response.StatusCode != StatusCode.Ok)
+            try
             {
-                return response;
+                bool userExists = _usersRepository.TryGetUserByLogin(userLogin, out User user);
+                if (!userExists)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.NotFound,
+                        Description = "User with this doesn't exist"
+                    };
+                }
+                await _usersRepository.DeleteUserAsync(user);
             }
-            var user = ((BaseResponse<User>)response).Data;
-            await _usersRepository.DeleteUserAsync(user);
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
+            
             return new BaseResponse() { StatusCode = StatusCode.Ok, Description = "User has been successfully deleted" };
         }
-        public async Task<IBaseResponse> RevokeUserAsync(string adminLogin,string password,string userLogin)
-        {
-            var response = CheckDataForOnlyAdminOperation(adminLogin, password, userLogin);
-            if (response.StatusCode != StatusCode.Ok)
+        public async Task<IBaseResponse> RevokeUserAsync(string revokedBy,string userLogin)
+        {       
+            try
             {
-                return response;
+                bool userExists = _usersRepository.TryGetUserByLogin(userLogin, out User user);
+                if (!userExists)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.NotFound,
+                        Description = "User with this doesn't exist"
+                    };
+                }
+                user.RevokedBy = revokedBy;
+                user.RevokedOn = DateTime.Now;
+                await _usersRepository.UpdateUserAsync(user);
             }
-            var user = ((BaseResponse<User>)response).Data;
-            user.RevokedBy = adminLogin;
-            user.RevokedOn = DateTime.Now;
-            await _usersRepository.UpdateUserAsync(user);
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
+            
+            
             return new BaseResponse()
             {
                 StatusCode = StatusCode.Ok,
                 Description = "User has been successfully revoked"
             };
         }
-        public async Task<IBaseResponse> RecoveryUserAsync(string adminLogin, string password, string userLogin)
+        public async Task<IBaseResponse> RecoveryUserAsync( string userLogin)
         {
-            var response = CheckDataForOnlyAdminOperation(adminLogin, password, userLogin);
-            if (response.StatusCode != StatusCode.Ok)
+
+            try
             {
-                return response;
+                bool userExists = _usersRepository.TryGetUserByLogin(userLogin, out User user);
+                if (!userExists)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.NotFound,
+                        Description = "User with this doesn't exist"
+                    };
+                }
+                user.RevokedBy = null;
+                user.RevokedOn = null;
+                await _usersRepository.UpdateUserAsync(user);
             }
-            var user = ((BaseResponse<User>)response).Data;
-            user.RevokedBy = null;
-            user.RevokedOn = null;
-            await _usersRepository.UpdateUserAsync(user);
+            catch (Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }            
             return new BaseResponse()
             {
                 StatusCode = StatusCode.Ok,
                 Description = "User has been successfully recovered"
             };
         }
-        private IBaseResponse CheckDataForOnlyAdminOperation(string adminLogin,string password,string userLogin)
-        {
-            var response = CheckAdminData(adminLogin, password);
-            if (response.StatusCode != StatusCode.Ok)
-            {
-                return response;
-            }
-
-            if (!TryGetUserByLogin(userLogin, out User user))
-            {
-                return new BaseResponse()
-                {
-                    StatusCode = StatusCode.NotFound,
-                    Description = "User with this login don't found"
-                };
-            }
-            return new BaseResponse<User>()
-            {
-                StatusCode = StatusCode.Ok,
-                Data = user
-            };
-        }
-        private IBaseResponse CheckAdminData(string login,string password)
-        {
-            if (!TryGetUserByLoginPassword(login, password, out User user))
-            {
-                return new BaseResponse()
-                {
-                    StatusCode = StatusCode.BadRequest,
-                    Description = "Invalid login or password"
-                };
-            }
-            if (!user.Admin)
-            {
-                return new BaseResponse()
-                {
-                    StatusCode = StatusCode.AccessDenied,
-                    Description = "Only administrator can do this"
-                };
-            }
-            return new BaseResponse() { StatusCode = StatusCode.Ok };
-        }
-        private  IBaseResponse CheckInputData(string login,string password,string userLogin)
-        {
-            if (!TryGetUserByLoginPassword(login, password, out User user))
-            {
-                return new BaseResponse()
-                {
-                    StatusCode = StatusCode.BadRequest,
-                    Description = "Invalid login or password"
-                };
-            }
-
-            if (!user.Admin)
-            {
-                if (login != userLogin)
-                {
-                    return new BaseResponse()
-                    {
-                        StatusCode = StatusCode.AccessDenied,
-                        Description = "Only the user or the administrator can make changes to the user's properties"
-                    };
-                }
-                if (IsRevoked(user))
-                {
-                    return new BaseResponse()
-                    {
-                        StatusCode = StatusCode.AccessDenied,
-                        Description = "The rights of the user performing the operation have been revoked"
-                    };
-
-                }
-            }
-            if (login != userLogin)
-            {
-                if (!TryGetUserByLogin(userLogin, out user))
-                {
-                    return new BaseResponse()
-                    {
-                        StatusCode = StatusCode.NotFound,
-                        Description = $"User with login '{userLogin}' doesn't exist"
-                    };
-                }
-            }
-            return new BaseResponse<User>() { StatusCode = StatusCode.Ok, Data = user };
-        } 
         private void UpdateModifyFields(User user,string modifiedBy)
         {
             user.ModifiedBy = modifiedBy;
             user.ModifiedOn = DateTime.Now;
-        }
-        private bool IsRevoked(User user) => user.RevokedOn != null;
-        private async Task<bool> UserExists(string login)
-        {
-            var user = await _usersRepository.GetUserAsync(login);
-            if (user != null)
-            {
-                return true;
-            }
-            return false;
-        }
-        private bool TryGetUserByLoginPassword(string login,string password,out User user)
-        {
-            user = _usersRepository.GetUser(login, password);
-
-            if (user != null)
-            {
-                return true;
-            }
-            return false;
-        }
-        private bool TryGetUserByLogin(string login, out User user)
-        {
-            user =  _usersRepository.GetUser(login);
-
-            if (user != null)
-            {
-                return true;
-            }
-
-            return false;
-        }
+        }  
+       
     }
 }

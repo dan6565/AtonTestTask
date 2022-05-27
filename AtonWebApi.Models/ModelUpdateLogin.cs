@@ -6,9 +6,7 @@ namespace AtonWebApi.Models
 {
     public class ModelUpdateLogin
     {
-        public string Login { get; set; }
-        public string Password { get; set; }
-        [OnlyLatinLettersOrNumbers]       
+        public string Token { get; set; }           
         public string PreviousUserLogin { get; set; }
         [OnlyLatinLettersOrNumbers]
         [StringLength(50,MinimumLength =3)]

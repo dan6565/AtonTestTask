@@ -20,12 +20,12 @@ namespace AtonWebApi.Controllers
         [HttpPost("authenticate")]
         public async Task<ActionResult<string>> Authenticate([FromBody] LoginModel model)
         {
-            var response =await _authService.Authenticate(model.Login, model.Password);
+            var response =await _authService.AuthenticateAsync(model.Login, model.Password);
             if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
                 return StatusCode((int)response.StatusCode,response.Description);
             }
-            return Ok(((BaseResponse<string>)response).Data);
+            return Ok(new { token = ((BaseResponse<string>)response).Data });
 
         }
     }

@@ -12,10 +12,12 @@ namespace AtonWebApi.Controllers
     public class UsersController : ControllerBase
     {
         private readonly UsersService _usersService;
+        private readonly AuthService _authService;
 
-        public UsersController(IUsersRepository usersRepository,UsersService usersService) 
+        public UsersController(UsersService usersService, AuthService authService) 
         { 
             _usersService = usersService;
+            _authService = authService;
         }
         [HttpPost("Create")]
         public async Task<ActionResult> CreateUserAsync([FromBody] ModelCreating model)
@@ -24,8 +26,13 @@ namespace AtonWebApi.Controllers
             {
                 return BadRequest(ModelState);
             }
-            
-            var response = await _usersService.CreateUser(model.Login, model.User);
+            var response = _authService.VerifyAdmin(model.Token);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+            var creator = _authService.GetUserLogin(model.Token);
+            response = await _usersService.CreateUserAsync(creator,model.User);
 
             return StatusCode((int)response.StatusCode, response.Description);
 
@@ -37,7 +44,14 @@ namespace AtonWebApi.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var response = await _usersService.UpdateLogin(model.Login, model.Password, model.PreviousUserLogin, model.NewUserLogin);
+            var response = _authService.CheckAccessAdminOrPerformingUser(model.Token, model.PreviousUserLogin);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+            var modifiedBy = _authService.GetUserLogin(model.Token);
+            response = await _usersService.UpdateLoginAsync(modifiedBy, model.PreviousUserLogin, model.NewUserLogin);
+            
             return StatusCode((int)response.StatusCode, response.Description);
         }
         [HttpPatch("UpdatePassword")]
@@ -47,8 +61,14 @@ namespace AtonWebApi.Controllers
             {
                 return BadRequest(ModelState);
             }
-            
-            var response = await _usersService.UpdatePasswordAsync(model.Login, model.Password, model.UserLogin, model.NewUserPassword);
+           
+            var response = _authService.CheckAccessAdminOrPerformingUser(model.Token, model.UserLogin);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+            var modifiedBy = _authService.GetUserLogin(model.Token);
+             response = await _usersService.UpdatePasswordAsync(modifiedBy, model.UserLogin, model.NewUserPassword);
             return StatusCode((int)response.StatusCode, response.Description);
         }
         [HttpPatch("UpdateName")]
@@ -58,7 +78,14 @@ namespace AtonWebApi.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var response = await _usersService.UpdateNameAsync(model.Login, model.Password, model.UserLogin, model.NewUserName);
+           
+            var response = _authService.CheckAccessAdminOrPerformingUser(model.Token, model.UserLogin);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+            var modifiedBy = _authService.GetUserLogin(model.Token);
+            response = await _usersService.UpdateNameAsync(modifiedBy, model.UserLogin, model.NewUserName);
             return StatusCode((int)response.StatusCode, response.Description);
         }
         [HttpPatch("UpdateBirthday")]
@@ -68,7 +95,14 @@ namespace AtonWebApi.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var response = await _usersService.UpdateBirthdayAsync(model.Login, model.Password, model.UserLogin, model.NewBirthday);
+            
+            var response = _authService.CheckAccessAdminOrPerformingUser(model.Token, model.UserLogin);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+            var modifiedBy = _authService.GetUserLogin(model.Token);
+            response = await _usersService.UpdateBirthdayAsync(modifiedBy, model.UserLogin, model.NewBirthday);
             return StatusCode((int)response.StatusCode, response.Description);
         }
         [HttpPatch("UpdateGender")]
@@ -78,26 +112,39 @@ namespace AtonWebApi.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var response = await _usersService.UpdateGenderAsync(model.Login, model.Password, model.UserLogin, model.NewGender);
-            return StatusCode((int)response.StatusCode, response.Description);
-        }
-        [HttpGet("GetActiveUsers")]
-        public async Task<ActionResult<User[]>> GetActiveUsersAsync(string adminLogin,string password)
-        {
-            var response = await _usersService.GetActiveUsersAsync(adminLogin, password);
+            
+            var response = _authService.CheckAccessAdminOrPerformingUser(model.Token, model.UserLogin);
             if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
                 return StatusCode((int)response.StatusCode, response.Description);
             }
+            var modifiedBy = _authService.GetUserLogin(model.Token);
+            response = await _usersService.UpdateGenderAsync(modifiedBy, model.UserLogin, model.NewGender);
+            return StatusCode((int)response.StatusCode, response.Description);
+        }
+        [HttpGet("GetActiveUsers")]
+        public async Task<ActionResult<User[]>> GetActiveUsersAsync(string token)
+        {
+
+            var response = _authService.VerifyAdmin(token);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+            response = await _usersService.GetActiveUsersAsync();
             var result = ((BaseResponse<User[]>)response).Data;
             return Ok(result);
             
         }
         [HttpGet("GetUserForAdmin")]
-        public ActionResult GetUserDataForAdminAsync(string adminLogin,string password,string userLogin)
+        public ActionResult GetUserDataForAdmin(string token, string userLogin)
         {
-
-            var response =  _usersService.GetUserDataForAdmin(adminLogin, password, userLogin);
+            var response = _authService.VerifyAdmin(token);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+             response =  _usersService.GetUserDataForAdmin(userLogin);
             if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
                 return StatusCode((int)response.StatusCode, response.Description);
@@ -112,9 +159,14 @@ namespace AtonWebApi.Controllers
             });
         }
         [HttpGet("GetUserData")]
-        public ActionResult<User> GetUserData(string login,string password)
+        public async Task<ActionResult<User>> GetUserDataAsync(string token)
         {
-            var response = _usersService.GetUserData(login, password);
+            if (!_authService.IsValidToken(token))
+            {
+                return StatusCode(403, "Invalid token");
+            }
+            var login = _authService.GetUserLogin(token);
+            var response = await _usersService.GetUserDataAsync(login);
             if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
                 return StatusCode((int)response.StatusCode,response.Description);
@@ -123,13 +175,14 @@ namespace AtonWebApi.Controllers
             return Ok(result);
         }
         [HttpGet("GetUsersByAge")]
-        public async Task<ActionResult<User[]>> GetUsersByAge( string adminLogin,string password, int age)
+        public async Task<ActionResult<User[]>> GetUsersByAgeAsync(string token, int age)
         {
-            var response = await _usersService.GetUsersByAgeAsync(adminLogin, password,age);
+            var response = _authService.VerifyAdmin(token);
             if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
                 return StatusCode((int)response.StatusCode, response.Description);
             }
+            response = await _usersService.GetUsersByAgeAsync(age);
             var result = ((BaseResponse<User[]>)response).Data;
             if (result.Length == 0)
             {
@@ -140,7 +193,12 @@ namespace AtonWebApi.Controllers
         [HttpDelete("DeleteUser")]
         public async Task<ActionResult> DeleteUserAsync([FromBody] ModelLoginOperation model)
         {
-            var response = await _usersService.DeleteUserAsync(model.AdminLogin, model.Password, model.UserLogin);
+            var response = _authService.VerifyAdmin(model.Token);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+            response = await _usersService.DeleteUserAsync(model.UserLogin);
             if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
                 return StatusCode((int)response.StatusCode, response.Description);
@@ -151,7 +209,13 @@ namespace AtonWebApi.Controllers
         [HttpPatch("RevokeUser")]
         public async Task<ActionResult> RevokeUser([FromBody] ModelLoginOperation model)
         {
-            var response = await _usersService.RevokeUserAsync(model.AdminLogin, model.Password, model.UserLogin);
+            var response = _authService.VerifyAdmin(model.Token);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+            var revokedBy = _authService.GetUserLogin(model.Token);
+            response = await _usersService.RevokeUserAsync(revokedBy, model.UserLogin);
             if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
                 return StatusCode((int)response.StatusCode, response.Description);
@@ -161,7 +225,12 @@ namespace AtonWebApi.Controllers
         [HttpPatch("UserRecovery")]
         public async Task<ActionResult> UserRecoveryAsync([FromBody] ModelLoginOperation model)
         {
-            var response = await _usersService.RecoveryUserAsync(model.AdminLogin, model.Password, model.UserLogin);
+            var response = _authService.VerifyAdmin(model.Token);
+            if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
+            {
+                return StatusCode((int)response.StatusCode, response.Description);
+            }
+            response = await _usersService.RecoveryUserAsync( model.UserLogin);
             if (response.StatusCode != AtonWebApi.Response.StatusCode.Ok)
             {
                 return StatusCode((int)response.StatusCode, response.Description);

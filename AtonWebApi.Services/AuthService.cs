@@ -1,11 +1,11 @@
 ﻿using AtonTestTask.Interfaces;
 using AtonWebApi.Entities;
+using AtonWebApi.Helpers;
 using AtonWebApi.Response;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 
 namespace AtonWebApi.Services
 {
@@ -19,11 +19,25 @@ namespace AtonWebApi.Services
             _usersRepository = usersRepository;
             _configuration = configuration;
         }
-        public async Task<IBaseResponse> Authenticate(string login,string password)
+        public async Task<IBaseResponse> AuthenticateAsync(string login,string password)
         {
-           
-            var hashPassword = GetHashPassword(password);
-            var user = await _usersRepository.GetUserAsync(login, hashPassword);
+            var secretKey = _configuration.GetSection("AppSettings:SecretKey").Value;
+            var hashPassword = PasswordHesher.GetHashPassword(password,secretKey);
+            User user = null;
+            try
+            {
+                user = await _usersRepository.GetUserAsync(login, hashPassword);
+            }
+            catch(Exception ex)
+            {
+                return new BaseResponse()
+                {
+                    Description = ex.Message,
+                    StatusCode = StatusCode.DataBaseError
+                };
+            }
+            
+
             if (user == null)
             {
                 return new BaseResponse()
@@ -39,8 +53,7 @@ namespace AtonWebApi.Services
                     StatusCode = StatusCode.AccessDenied,
                     Description = "The rights of the user performing the operation have been revoked"
                 };
-            }
-            var secretKey = _configuration.GetSection("AppSettings:SecretKey").Value;
+            }            
             var token = CreateToken(secretKey,user);
             return new BaseResponse<string>()
             {
@@ -49,38 +62,98 @@ namespace AtonWebApi.Services
                 Data = token
             };
         }
-        public void CheckUserToken(string token)
+        public IBaseResponse CheckAccessAdminOrPerformingUser(string token,string userLogin)
+        {
+            if (!IsValidToken(token))
+            {
+                return new BaseResponse()
+                {
+                    StatusCode = StatusCode.AccessDenied,
+                    Description = "Invalid token"
+                }; 
+            }
+            if (!IsAdmin(token))
+            {
+                var userLoginFromToken = GetUserLogin(token);
+                if (userLoginFromToken != userLogin)
+                {
+                    return new BaseResponse()
+                    {
+                        StatusCode = StatusCode.AccessDenied,
+                        Description = "Only the admin or the user himself can do this"
+                    };
+                }
+            }
+            return new BaseResponse() { StatusCode = StatusCode.Ok };
+        }
+        public bool IsAdmin(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var claims = tokenHandler.ReadJwtToken(token).Claims;
+            var role = claims.FirstOrDefault(x => x.Type == ClaimTypes.Role).Value;
+            return role=="Admin";
+        }
+        public string GetUserLogin(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var claims = tokenHandler.ReadJwtToken(token).Claims;
+            var login = claims.FirstOrDefault(x => x.Type == ClaimTypes.Name).Value;
+            return login;
+        }
+        public IBaseResponse VerifyAdmin(string token)
+        {
+            if (!IsValidToken(token))
+            {
+                return new BaseResponse()
+                {
+                    Description = "Invalid token",
+                    StatusCode = StatusCode.AccessDenied
+                };
+            }            
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var claims = tokenHandler.ReadJwtToken(token).Claims;
+            var role = claims.FirstOrDefault(x=>x.Type== ClaimTypes.Role).Value;
+            if (role != "Admin")
+            {
+                return new BaseResponse()
+                {
+                    Description = "Only Admin can do this",
+                    StatusCode = StatusCode.AccessDenied
+                };
+            }
+            return new BaseResponse() { StatusCode = StatusCode.Ok };
+        }
+   
+        public bool IsValidToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler(); 
            
-           if (tokenHandler.CanReadToken(token))
+            var secretKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
+                    _configuration.GetSection("AppSettings:SecretKey").Value));                
+            try
             {
-                var secretKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
-                    _configuration.GetSection("AppSettings:SecretKey").Value));
-                var jwt = tokenHandler.ReadJwtToken(token);
-                List<Claim> claims = jwt.Claims.ToList();
-                var name = claims.FirstOrDefault(x => x.Type == ClaimTypes.Name);
-                var role = claims.FirstOrDefault(x => x.Type == ClaimTypes.Role);
                 tokenHandler.ValidateToken(token, new TokenValidationParameters
                 {
-                    ValidateAudience=false,
-                    ValidateIssuer=false,
-                    ValidateIssuerSigningKey = true,                   
+                    ValidateAudience = false,
+                    ValidateIssuer = false,
+                    ValidateIssuerSigningKey = true,
                     IssuerSigningKey = secretKey
                 }, out SecurityToken validatedToken);
-               
-                
-                
-               
             }
+            catch(SecurityTokenException) 
+            {
+                return false;
+            }
+            return true;  
+           
         }
-        private string CreateToken(string secretKey,User user)
+        public string CreateToken(string secretKey,User user)
         {
             var symmetricKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey));
             var credentionals = new SigningCredentials(symmetricKey, SecurityAlgorithms.HmacSha256);
             var claims = new List<Claim>()
             {
-                new Claim(ClaimTypes.Name, user.Name),
+                new Claim(ClaimTypes.Name, user.Login),
                 new Claim(ClaimTypes.Role,user.Admin?"Admin":"User")
             };
             var jsonSecTok = new JwtSecurityToken(
@@ -90,16 +163,7 @@ namespace AtonWebApi.Services
                 );
             return new JwtSecurityTokenHandler().WriteToken(jsonSecTok);
         }
-        public string GetHashPassword(string password)
-        {
-            var secretKey = _configuration.GetSection("AppSettings:SecretKey").Value;
-            var bytePassword = System.Text.Encoding.Unicode.GetBytes(password);
-            var byteSault = System.Text.Encoding.Unicode.GetBytes(secretKey);
-            using var hmac = new HMACSHA256();
-            hmac.Key = byteSault;
-            var hash = hmac.ComputeHash(bytePassword);
-            return BitConverter.ToString(hash).Replace("-","").ToLower();
-        }
+        
         
     }
 }

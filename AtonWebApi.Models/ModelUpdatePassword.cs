@@ -5,8 +5,7 @@ namespace AtonWebApi.Models
 {
     public class ModelUpdatePassword
     {
-        public string Login { get; set; }
-        public string Password { get; set; }
+        public string Token { get; set; }
         [OnlyLatinLettersOrNumbers]
         public string UserLogin { get; set; }
         [OnlyLatinLettersOrNumbers]
