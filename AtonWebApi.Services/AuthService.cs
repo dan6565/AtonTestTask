@@ -49,10 +49,35 @@ namespace AtonWebApi.Services
                 Data = token
             };
         }
+        public void CheckUserToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler(); 
+           
+           if (tokenHandler.CanReadToken(token))
+            {
+                var secretKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(
+                    _configuration.GetSection("AppSettings:SecretKey").Value));
+                var jwt = tokenHandler.ReadJwtToken(token);
+                List<Claim> claims = jwt.Claims.ToList();
+                var name = claims.FirstOrDefault(x => x.Type == ClaimTypes.Name);
+                var role = claims.FirstOrDefault(x => x.Type == ClaimTypes.Role);
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateAudience=false,
+                    ValidateIssuer=false,
+                    ValidateIssuerSigningKey = true,                   
+                    IssuerSigningKey = secretKey
+                }, out SecurityToken validatedToken);
+               
+                
+                
+               
+            }
+        }
         private string CreateToken(string secretKey,User user)
         {
             var symmetricKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey));
-            var credentionals = new SigningCredentials(symmetricKey, SecurityAlgorithms.HmacSha512);
+            var credentionals = new SigningCredentials(symmetricKey, SecurityAlgorithms.HmacSha256);
             var claims = new List<Claim>()
             {
                 new Claim(ClaimTypes.Name, user.Name),

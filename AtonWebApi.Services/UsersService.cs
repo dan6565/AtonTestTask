@@ -17,13 +17,15 @@ namespace AtonWebApi.Services
             _usersRepository = usersRepository;
             _authService = authService;
         }
-        public async Task<IBaseResponse> CreateUser(string login,string password, UserDto userDto)
+        public async Task<IBaseResponse> CreateUser(string token, UserDto userDto)
         {
-            var response = CheckAdminData(login, password);
-            if (response.StatusCode != StatusCode.Ok)
-            {
-                return response;
-            }            
+            _authService.CheckUserToken(token);
+            //var hashPassword = _authService.GetHashPassword(password);
+            //var response = CheckAdminData(login, hashPassword);
+            //if (response.StatusCode != StatusCode.Ok)
+            //{
+            //    return response;
+            //}            
             if(await UserExists(userDto.Login))
             {
                 return new BaseResponse()
@@ -32,11 +34,11 @@ namespace AtonWebApi.Services
                     Description = "User with this login already exists"
                 };
             }
-            var hashPassword = _authService.GetHashPassword(password);
-            var newUser = new User(userDto, login,hashPassword);
-            await _usersRepository.CreateUserAsync(newUser);
+            var hashNewUserPassword = _authService.GetHashPassword(userDto.Password);
+            //var newUser = new User(userDto, login, hashNewUserPassword);
+            //await _usersRepository.CreateUserAsync(newUser);
 
-            return new BaseResponse() { StatusCode = StatusCode.Ok,Description="User was successfully added" };
+            return new BaseResponse() { StatusCode = StatusCode.Ok,Description="User has been successfully added" };
         }
         public async Task<IBaseResponse> UpdateLogin(string login,string password, string userLogin,string newUserLogin)
         {

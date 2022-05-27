@@ -24,7 +24,8 @@ namespace AtonWebApi.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var response = await _usersService.CreateUser(model.Login, model.Password, model.User);
+            
+            var response = await _usersService.CreateUser(model.Login, model.User);
 
             return StatusCode((int)response.StatusCode, response.Description);
 
