@@ -4,8 +4,6 @@ using AtonWebApi.Entities;
 using AtonWebApi.Helpers;
 using AtonWebApi.Response;
 using Microsoft.Extensions.Configuration;
-using System.Security.Claims;
-using System.Security.Cryptography;
 
 namespace AtonWebApi.Services
 {

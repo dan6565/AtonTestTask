@@ -1,5 +1,4 @@
-﻿
-using AtonWebApi.Entities;
+﻿using AtonWebApi.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AtonTestTask.Data

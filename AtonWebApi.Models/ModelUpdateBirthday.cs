@@ -1,6 +1,4 @@
-﻿using AtonWebApi.Attributes;
-
-
+﻿
 namespace AtonWebApi.Models
 {
     public class ModelUpdateBirthday
