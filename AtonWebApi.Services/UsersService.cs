@@ -95,9 +95,14 @@ namespace AtonWebApi.Services
                     StatusCode = StatusCode.DataBaseError
                 };
             }
-            var sercretKey = _configuration.GetSection("AppSettings:SecretKey").Value;
-            var newToken = _authService.CreateToken(sercretKey, user);
-            return new BaseResponse() { StatusCode = StatusCode.Ok, Description = $"Login has been successfully changed\nNew Token: {newToken}" };
+            if (modifiedBy == userLogin)
+            {
+                var sercretKey = _configuration.GetSection("AppSettings:SecretKey").Value;
+                var newToken = _authService.CreateToken(sercretKey, user);
+                return new BaseResponse() { StatusCode = StatusCode.Ok, Description = $"Login has been successfully changed\nNew Token: {newToken}" };
+            }
+            return new BaseResponse() { StatusCode = StatusCode.Ok, Description = $"Login has been successfully changed" };
+
         }
 
         public async Task<IBaseResponse> UpdatePasswordAsync(string modifiedBy, string userLogin, string newUserPassword)
@@ -113,7 +118,9 @@ namespace AtonWebApi.Services
                         Description = "User with this doesn't exist"
                     };
                 }
-                user.Password = newUserPassword;
+                var sercretKey = _configuration.GetSection("AppSettings:SecretKey").Value;
+                var hashUserPassword = PasswordHesher.GetHashPassword(newUserPassword, sercretKey);
+                user.Password = hashUserPassword;
                 UpdateModifyFields(user, modifiedBy);
                 await _usersRepository.UpdateUserAsync(user);
             }

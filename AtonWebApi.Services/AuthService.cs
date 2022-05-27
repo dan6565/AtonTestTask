@@ -140,7 +140,7 @@ namespace AtonWebApi.Services
                     IssuerSigningKey = secretKey
                 }, out SecurityToken validatedToken);
             }
-            catch(SecurityTokenException) 
+            catch(Exception) 
             {
                 return false;
             }
