@@ -1,15 +1,30 @@
+using AtonTestTask.Data;
+using AtonTestTask.Data.Repositories;
+using AtonTestTask.Interfaces;
+using AtonWebApi.Data.Initialiser;
+using AtonWebApi.Services;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IUsersRepository,UsersRepository>();
+builder.Services.AddScoped<UsersService>();
+builder.Services.AddScoped<AuthService>();
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+var scope = app.Services.CreateScope();
+var services = scope.ServiceProvider;
+var repository = services.GetRequiredService<IUsersRepository>();
+await AdminInitializer.InitializeAsync(repository,app.Configuration);
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
